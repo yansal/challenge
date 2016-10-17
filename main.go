@@ -27,8 +27,7 @@ func createTableTasks() error {
     "name" TEXT NOT NULL,
     "user" TEXT NOT NULL,
     "description" TEXT,
-    "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );`); err != nil {
 		return fmt.Errorf(`couldn't create "tasks" table: %v`, err)
 	}
