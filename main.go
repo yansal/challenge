@@ -14,11 +14,11 @@ import (
 )
 
 type Task struct {
-	ID           int        `json:"id,omitempty"`
-	Name         string     `json:"name,omitempty" binding:"required"`
-	User         string     `json:"user,omitempty" binding:"required"`
-	Description  string     `json:"description,omitempty"`
-	CreationDate *time.Time `json:"creation_date,omitempty"`
+	ID          int        `json:"id,omitempty"`
+	Name        string     `json:"name,omitempty" binding:"required"`
+	User        string     `json:"user,omitempty" binding:"required"`
+	Description string     `json:"description,omitempty"`
+	CreatedAt   *time.Time `json:"created_at,omitempty"`
 }
 
 func createTableTasks() error {
@@ -42,7 +42,7 @@ func insertTask(task Task) error {
 }
 
 func selectTasks() ([]Task, error) {
-	rows, err := db.Query(`SELECT * FROM tasks ORDER BY "creation_date";`)
+	rows, err := db.Query(`SELECT * FROM tasks ORDER BY "created_at";`)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't select from tasks table: %v", err)
 	}
@@ -51,7 +51,7 @@ func selectTasks() ([]Task, error) {
 	var tasks []Task
 	for rows.Next() {
 		var task Task
-		if err := rows.Scan(&task.ID, &task.Name, &task.User, &task.Description, &task.CreationDate); err != nil {
+		if err := rows.Scan(&task.ID, &task.Name, &task.User, &task.Description, &task.CreatedAt); err != nil {
 			return tasks, fmt.Errorf(`couldn't scan row: %v`, err)
 		}
 		tasks = append(tasks, task)
@@ -62,7 +62,7 @@ func selectTasks() ([]Task, error) {
 func selectTask(id int) (Task, error) {
 	row := db.QueryRow(`SELECT * FROM tasks WHERE id=$1`, id)
 	var task Task
-	err := row.Scan(&task.ID, &task.Name, &task.User, &task.Description, &task.CreationDate)
+	err := row.Scan(&task.ID, &task.Name, &task.User, &task.Description, &task.CreatedAt)
 	return task, err
 }
 
