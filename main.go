@@ -44,7 +44,7 @@ func getTasksIDHandler(c *gin.Context) {
 func postTasksHandler(c *gin.Context) {
 	user, exists := c.Get(gin.AuthUserKey)
 	if !exists {
-		log.Print("No user in POST tasks handler")
+		log.Print("No user in POST /tasks/ handler")
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -75,6 +75,63 @@ func getUsersIDTasksHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, tasks)
+}
+
+func postTasksIDCommentsHandler(c *gin.Context) {
+	user, exists := c.Get(gin.AuthUserKey)
+	if !exists {
+		log.Print("No user in POST /tasks/:id/comments handler")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	taskID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	var comment = Comment{UserID: user.(User).ID, TaskID: taskID}
+	if err := c.BindJSON(&comment); err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+	if err := insertComment(comment); err != nil {
+		log.Printf("couldn't insert into comments: %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.Data(http.StatusCreated, "", nil)
+}
+
+func getTasksIDCommentsHandler(c *gin.Context) {
+	taskID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+	comments, err := selectCommentsWhereTask(taskID)
+	if err != nil {
+		log.Printf("couldn't select from comments: %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusOK, comments)
+}
+
+func getUsersIDCommentsHandler(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+	comments, err := selectCommentsWhereUser(userID)
+	if err != nil {
+		log.Printf("couldn't select from tasks: %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusOK, comments)
 }
 
 func authMiddleware(c *gin.Context) {
@@ -109,8 +166,11 @@ func init() {
 	router.GET("/tasks/", getTasksHandler)
 	router.GET("/tasks/:id", getTasksIDHandler)
 	router.GET("/users/:id/tasks", getUsersIDTasksHandler)
+	router.GET("/tasks/:id/comments", getTasksIDCommentsHandler)
+	router.GET("/users/:id/comments", getUsersIDCommentsHandler)
 	authorized := router.Group("/", authMiddleware)
 	authorized.POST("/tasks/", postTasksHandler)
+	authorized.POST("/tasks/:id/comments", postTasksIDCommentsHandler)
 }
 
 func main() {

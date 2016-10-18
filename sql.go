@@ -89,5 +89,60 @@ func selectTasksWhereUser(id int) ([]Task, error) {
 		tasks = append(tasks, task)
 	}
 	return tasks, rows.Err()
+}
 
+func createTableComments() error {
+	if _, err := db.Exec(`CREATE TABLE comments(
+		"id" SERIAL PRIMARY KEY,
+		"created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+		"user_id" SERIAL REFERENCES users(id),
+		"task_id" SERIAL REFERENCES tasks(id),
+		"content" TEXT
+);`); err != nil {
+		return fmt.Errorf(`couldn't create "comments" table: %v`, err)
+	}
+	return nil
+}
+
+func insertComment(comment Comment) error {
+	if _, err := db.Exec(`INSERT INTO comments ("user_id", "task_id", "content") VALUES ($1, $2, $3)`, comment.UserID, comment.TaskID, comment.Content); err != nil {
+		return fmt.Errorf("couldn't insert into comments: %v", err)
+	}
+	return nil
+}
+
+func selectCommentsWhereTask(id int) ([]Comment, error) {
+	rows, err := db.Query(`SELECT * FROM comments WHERE task_id=$1 ORDER BY "created_at";`, id)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't select from comments table: %v", err)
+	}
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		var comment Comment
+		if err := rows.Scan(&comment.ID, &comment.CreatedAt, &comment.UserID, &comment.TaskID, &comment.Content); err != nil {
+			return comments, fmt.Errorf(`couldn't scan row: %v`, err)
+		}
+		comments = append(comments, comment)
+	}
+	return comments, rows.Err()
+}
+
+func selectCommentsWhereUser(id int) ([]Comment, error) {
+	rows, err := db.Query(`SELECT * FROM comments WHERE user_id=$1 ORDER BY "created_at";`, id)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't select from comments table: %v", err)
+	}
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		var comment Comment
+		if err := rows.Scan(&comment.ID, &comment.CreatedAt, &comment.UserID, &comment.TaskID, &comment.Content); err != nil {
+			return comments, fmt.Errorf(`couldn't scan row: %v`, err)
+		}
+		comments = append(comments, comment)
+	}
+	return comments, rows.Err()
 }

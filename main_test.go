@@ -44,10 +44,16 @@ func setup() error {
 	if err := createTableTasks(); err != nil {
 		return err
 	}
+	if err := createTableComments(); err != nil {
+		return err
+	}
 	if err := seedTableUsers(); err != nil {
 		return err
 	}
 	if err := seedTableTasks(); err != nil {
+		return err
+	}
+	if err := seedTableComments(); err != nil {
 		return err
 	}
 	return nil
@@ -63,8 +69,8 @@ func seedTableUsers() error {
 		}
 	}
 	return nil
-
 }
+
 func seedTableTasks() error {
 	for _, task := range []Task{
 		{Name: "First task", UserID: 1, Description: "This is the first task"},
@@ -78,7 +84,23 @@ func seedTableTasks() error {
 	return nil
 }
 
+func seedTableComments() error {
+	for _, comment := range []Comment{
+		{TaskID: 1, UserID: 1, Content: "This is the first comment"},
+		{TaskID: 1, UserID: 2, Content: "This is the second comment"},
+		{TaskID: 2, UserID: 2, Content: "This is the third comment"},
+	} {
+		if err := insertComment(comment); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func teardown() error {
+	if _, err := db.Exec("DROP TABLE comments;"); err != nil {
+		return fmt.Errorf("couldn't drop comments table: %v", err)
+	}
 	if _, err := db.Exec("DROP TABLE tasks;"); err != nil {
 		return fmt.Errorf("couldn't drop tasks table: %v", err)
 	}
@@ -106,7 +128,7 @@ func TestGetTasks(t *testing.T) {
 	if len(tasks) != 3 {
 		t.Errorf("expected 3 tasks; got %d (%+v)", len(tasks), tasks)
 	}
-	if !sort.IsSorted(ByCreatedAt(tasks)) {
+	if !sort.IsSorted(TasksByCreatedAt(tasks)) {
 		t.Errorf("tasks aren't sorted")
 	}
 }
@@ -141,7 +163,7 @@ func TestGetTasksIDNotFound(t *testing.T) {
 	}
 }
 
-func TestGetTasksIDBadRequest(t *testing.T) {
+func TestGetTasksIDBadID(t *testing.T) {
 	resp, err := http.Get(ts.URL + "/tasks/hello")
 	if err != nil {
 		t.Errorf("http request failed: %v", err)
@@ -194,7 +216,7 @@ func TestPostTasks(t *testing.T) {
 	}
 }
 
-func TestPostTasksBadRequest(t *testing.T) {
+func TestPostTasksNoName(t *testing.T) {
 	task, err := json.Marshal(Task{})
 	if err != nil {
 		t.Fatal(err)
@@ -288,7 +310,7 @@ func TestGetUsersIDTasks(t *testing.T) {
 	if len(tasks) != 3 {
 		t.Errorf("expected 3 tasks; got %d (%+v)", len(tasks), tasks)
 	}
-	if !sort.IsSorted(ByCreatedAt(tasks)) {
+	if !sort.IsSorted(TasksByCreatedAt(tasks)) {
 		t.Errorf("tasks aren't sorted")
 	}
 }
@@ -312,7 +334,7 @@ func TestGetUsersIDTasksDoesntExist(t *testing.T) {
 	}
 }
 
-func TestGetUsersIDTasksBadRequest(t *testing.T) {
+func TestGetUsersIDTasksBadID(t *testing.T) {
 	resp, err := http.Get(ts.URL + "/users/hello/tasks")
 	if err != nil {
 		t.Errorf("http request failed: %v", err)
@@ -321,5 +343,93 @@ func TestGetUsersIDTasksBadRequest(t *testing.T) {
 
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
+	}
+}
+
+func TestPostTasksIDComments(t *testing.T) {
+	marshalledComment, err := json.Marshal(Comment{Content: "Posted comment"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", ts.URL+"/tasks/1/comments", bytes.NewReader(marshalledComment))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("expected status code %v; got %v", http.StatusCreated, resp.StatusCode)
+	}
+}
+
+func TestPostTasksIDCommentsNoContent(t *testing.T) {
+	marshalledComment, err := json.Marshal(Comment{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", ts.URL+"/tasks/1/comments", bytes.NewReader(marshalledComment))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
+	}
+}
+
+func TestGetTasksIDComments(t *testing.T) {
+	resp, err := http.Get(ts.URL + "/tasks/1/comments")
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
+	}
+
+	var comments []Comment
+	if err := json.NewDecoder(resp.Body).Decode(&comments); err != nil {
+		t.Errorf("couldn't decode body to JSON: %v", err)
+	}
+	if len(comments) != 3 {
+		t.Errorf("expected 3 comments; got %d (%+v)", len(comments), comments)
+	}
+	if !sort.IsSorted(CommentsByCreatedAt(comments)) {
+		t.Errorf("comments aren't sorted")
+	}
+}
+
+func TestGetUsersIDComments(t *testing.T) {
+	resp, err := http.Get(ts.URL + "/users/1/comments")
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
+	}
+
+	var comments []Comment
+	if err := json.NewDecoder(resp.Body).Decode(&comments); err != nil {
+		t.Errorf("couldn't decode body to JSON: %v", err)
+	}
+	if len(comments) != 2 {
+		t.Errorf("expected 2 comments; got %d (%+v)", len(comments), comments)
+	}
+	if !sort.IsSorted(CommentsByCreatedAt(comments)) {
+		t.Errorf("comments aren't sorted")
 	}
 }
