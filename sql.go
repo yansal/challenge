@@ -21,6 +21,13 @@ func insertUser(user User) error {
 	return nil
 }
 
+func selectUser(token string) (User, error) {
+	row := db.QueryRow(`SELECT * FROM users WHERE token=$1`, token)
+	var user User
+	err := row.Scan(&user.ID, &user.CreatedAt, &user.Username, &user.Token)
+	return user, err
+}
+
 func createTableTasks() error {
 	if _, err := db.Exec(`CREATE TABLE tasks(
 		"id" SERIAL PRIMARY KEY,

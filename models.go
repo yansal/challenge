@@ -15,7 +15,7 @@ type User struct {
 
 type Task struct {
 	Model
-	UserID      int64
-	Name        string `json:"name,omitempty" binding:"required"`
+	UserID      int64  `json:",omitempty"`
+	Name        string `json:",omitempty" binding:"required"`
 	Description string `json:"description,omitempty"`
 }

@@ -148,6 +148,73 @@ func TestGetTasksIDBadRequest(t *testing.T) {
 	}
 }
 
+func TestPostTasks(t *testing.T) {
+	name := "Posted task"
+	marshalledTask, err := json.Marshal(Task{Name: name})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", ts.URL+"/tasks/", bytes.NewReader(marshalledTask))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("expected status code %v; got %v", http.StatusCreated, resp.StatusCode)
+	}
+
+	resp, err = http.Get(ts.URL + "/tasks/4")
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
+	}
+	var task Task
+	if err := json.NewDecoder(resp.Body).Decode(&task); err != nil {
+		t.Errorf("couldn't decode body to JSON: %v", err)
+	}
+	if task.UserID != 1 {
+		t.Errorf("expected user_id 1; got %v", task.UserID)
+	}
+	if task.Name != name {
+		t.Errorf("expected name %q; got %q", name, task.Name)
+	}
+}
+
+func TestPostTasksBadRequest(t *testing.T) {
+	task, err := json.Marshal(Task{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", ts.URL+"/tasks/", bytes.NewReader(task))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
+	}
+}
+
 func TestPostTasksUnauthenticated(t *testing.T) {
 	marshalledTask, err := json.Marshal(Task{Name: "Posted task"})
 	if err != nil {
@@ -163,7 +230,7 @@ func TestPostTasksUnauthenticated(t *testing.T) {
 	}
 }
 
-func TestPostTasks(t *testing.T) {
+func TestPostTasksBadAuthentication(t *testing.T) {
 	marshalledTask, err := json.Marshal(Task{Name: "Posted task"})
 	if err != nil {
 		t.Fatal(err)
@@ -172,38 +239,15 @@ func TestPostTasks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Add("Authentication", "")
+	req.Header.Add("Authorization", "Token 123456")
+	req.Header.Add("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Errorf("http request failed: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
-	}
-}
-
-func TestPostTasksBadRequest(t *testing.T) {
-	marshalledTask, err := json.Marshal(Task{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	req, err := http.NewRequest("POST", ts.URL+"/tasks/", bytes.NewReader(marshalledTask))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Authentication", "")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Errorf("http request failed: %v", err)
-	}
-	defer resp.Body.Close()
-	if err != nil {
-		t.Errorf("http request failed: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusBadRequest {
-		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("expected status code %v; got %v", http.StatusUnauthorized, resp.StatusCode)
 	}
 }
 
