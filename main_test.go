@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sort"
 	"testing"
 )
 
@@ -103,7 +104,10 @@ func TestGetTasks(t *testing.T) {
 		t.Errorf("couldn't decode body to JSON: %v", err)
 	}
 	if len(tasks) != 3 {
-		t.Errorf("expected 3 tasks; got %d", len(tasks))
+		t.Errorf("expected 3 tasks; got %d (%+v)", len(tasks), tasks)
+	}
+	if !sort.IsSorted(ByCreatedAt(tasks)) {
+		t.Errorf("tasks aren't sorted")
 	}
 }
 
@@ -122,7 +126,7 @@ func TestGetTasksID(t *testing.T) {
 		t.Errorf("couldn't decode body to JSON: %v", err)
 	}
 	if task.ID != 1 {
-		t.Errorf("expected id 1; got %v", task.ID)
+		t.Errorf("expected id 1; got %d (%+v)", task.ID, task)
 	}
 }
 
@@ -202,10 +206,6 @@ func TestPostTasksBadRequest(t *testing.T) {
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Errorf("http request failed: %v", err)
-	}
-	defer resp.Body.Close()
 	if err != nil {
 		t.Errorf("http request failed: %v", err)
 	}
