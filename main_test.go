@@ -37,17 +37,38 @@ func setup() error {
 	if err := db.Ping(); err != nil {
 		return fmt.Errorf("couldn't ping database: %v", err)
 	}
+	if err := createTableUsers(); err != nil {
+		return err
+	}
 	if err := createTableTasks(); err != nil {
 		return err
 	}
-	return seedTableTasks()
+	if err := seedTableUsers(); err != nil {
+		return err
+	}
+	if err := seedTableTasks(); err != nil {
+		return err
+	}
+	return nil
 }
 
+func seedTableUsers() error {
+	for _, user := range []User{
+		{Username: "Alice", Token: "077000ac559e1ba0fe4f303b614f30da6306341f"},
+		{Username: "Bob", Token: "ef2e253a2b4564ae949b053025c845552f2e99cc"},
+	} {
+		if err := insertUser(user); err != nil {
+			return err
+		}
+	}
+	return nil
+
+}
 func seedTableTasks() error {
 	for _, task := range []Task{
-		{Name: "First task", User: "Alice", Description: "This is the first task"},
-		{Name: "Second task", User: "Alice", Description: "This is the second task"},
-		{Name: "Third task", User: "Bob", Description: "This is the third task"},
+		{Name: "First task", UserID: 1, Description: "This is the first task"},
+		{Name: "Second task", UserID: 1, Description: "This is the second task"},
+		{Name: "Third task", UserID: 2, Description: "This is the third task"},
 	} {
 		if err := insertTask(task); err != nil {
 			return err
@@ -58,6 +79,9 @@ func seedTableTasks() error {
 
 func teardown() error {
 	if _, err := db.Exec("DROP TABLE tasks;"); err != nil {
+		return fmt.Errorf("couldn't drop tasks table: %v", err)
+	}
+	if _, err := db.Exec("DROP TABLE users;"); err != nil {
 		return fmt.Errorf("couldn't drop tasks table: %v", err)
 	}
 	return nil
@@ -124,27 +148,56 @@ func TestGetTasksIDBadRequest(t *testing.T) {
 	}
 }
 
-func TestPostTasks(t *testing.T) {
-	encodedTask, err := json.Marshal(Task{Name: "Posted task", User: "Chris"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := http.Post(ts.URL+"/tasks/", "application/json", bytes.NewReader(encodedTask))
-	if err != nil {
-		t.Errorf("http request failed: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		t.Errorf("expected status code %v; got %v", http.StatusCreated, resp.StatusCode)
-	}
-}
-
-func TestPostTasksBadRequest(t *testing.T) {
+func TestPostTasksUnauthenticated(t *testing.T) {
 	marshalledTask, err := json.Marshal(Task{Name: "Posted task"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	resp, err := http.Post(ts.URL+"/tasks/", "application/json", bytes.NewReader(marshalledTask))
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("expected status code %v; got %v", http.StatusUnauthorized, resp.StatusCode)
+	}
+}
+
+func TestPostTasks(t *testing.T) {
+	marshalledTask, err := json.Marshal(Task{Name: "Posted task"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", ts.URL+"/tasks/", bytes.NewReader(marshalledTask))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Authentication", "")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
+	}
+}
+
+func TestPostTasksBadRequest(t *testing.T) {
+	marshalledTask, err := json.Marshal(Task{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", ts.URL+"/tasks/", bytes.NewReader(marshalledTask))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Authentication", "")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
 	if err != nil {
 		t.Errorf("http request failed: %v", err)
 	}
