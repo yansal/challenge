@@ -62,6 +62,21 @@ func postTasksHandler(c *gin.Context) {
 	c.Data(http.StatusCreated, "", nil)
 }
 
+func getUsersIDTasksHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+	tasks, err := selectTasksWhereUser(id)
+	if err != nil {
+		log.Printf("couldn't select from tasks: %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusOK, tasks)
+}
+
 func authMiddleware(c *gin.Context) {
 	header := c.Request.Header.Get("Authorization")
 	fields := strings.Fields(header)
@@ -93,6 +108,7 @@ func init() {
 	router = gin.Default()
 	router.GET("/tasks/", getTasksHandler)
 	router.GET("/tasks/:id", getTasksIDHandler)
+	router.GET("/users/:id/tasks", getUsersIDTasksHandler)
 	authorized := router.Group("/", authMiddleware)
 	authorized.POST("/tasks/", postTasksHandler)
 }

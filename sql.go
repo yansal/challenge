@@ -72,3 +72,22 @@ func selectTask(id int) (Task, error) {
 	err := row.Scan(&task.ID, &task.CreatedAt, &task.Name, &task.UserID, &task.Description)
 	return task, err
 }
+
+func selectTasksWhereUser(id int) ([]Task, error) {
+	rows, err := db.Query(`SELECT * FROM tasks WHERE user_id=$1 ORDER BY "created_at";`, id)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't select from tasks table: %v", err)
+	}
+	defer rows.Close()
+
+	var tasks []Task
+	for rows.Next() {
+		var task Task
+		if err := rows.Scan(&task.ID, &task.CreatedAt, &task.Name, &task.UserID, &task.Description); err != nil {
+			return tasks, fmt.Errorf(`couldn't scan row: %v`, err)
+		}
+		tasks = append(tasks, task)
+	}
+	return tasks, rows.Err()
+
+}

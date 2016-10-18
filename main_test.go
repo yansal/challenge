@@ -269,3 +269,57 @@ func TestPatchTasksID(t *testing.T) {
 		t.Errorf("expected status code %v; got %v", http.StatusNoContent, resp.StatusCode)
 	}
 }
+
+func TestGetUsersIDTasks(t *testing.T) {
+	resp, err := http.Get(ts.URL + "/users/1/tasks")
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
+	}
+
+	var tasks []Task
+	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
+		t.Errorf("couldn't decode body to JSON: %v", err)
+	}
+	if len(tasks) != 3 {
+		t.Errorf("expected 3 tasks; got %d (%+v)", len(tasks), tasks)
+	}
+	if !sort.IsSorted(ByCreatedAt(tasks)) {
+		t.Errorf("tasks aren't sorted")
+	}
+}
+
+func TestGetUsersIDTasksDoesntExist(t *testing.T) {
+	resp, err := http.Get(ts.URL + "/users/123456/tasks")
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
+	}
+	var tasks []Task
+	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
+		t.Errorf("couldn't decode body to JSON: %v", err)
+	}
+	if len(tasks) != 0 {
+		t.Errorf("expected 0 task; got %d (%+v)", len(tasks), tasks)
+	}
+}
+
+func TestGetUsersIDTasksBadRequest(t *testing.T) {
+	resp, err := http.Get(ts.URL + "/users/hello/tasks")
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
+	}
+}
