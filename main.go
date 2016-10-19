@@ -14,8 +14,8 @@ import (
 )
 
 func getTasksHandler(c *gin.Context) {
-	var tasks []Task
-	err := db.Select(&tasks, `SELECT * FROM tasks ;`)
+	var tasks []TaskResource
+	err := db.Select(&tasks, `SELECT tasks.id, tasks.created_at, tasks.name, tasks.description, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id;`)
 	if err != nil {
 		log.Printf("couldn't select from tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -30,8 +30,8 @@ func getTasksIDHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	var task Task
-	err = db.Get(&task, `SELECT * FROM tasks WHERE id=$1`, id)
+	var task TaskResource
+	err = db.Get(&task, `SELECT tasks.id, tasks.created_at, tasks.name, tasks.description, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id WHERE tasks.id = $1;`, id)
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, nil)
 		return
@@ -71,8 +71,8 @@ func getUsersIDTasksHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	var tasks []Task
-	err = db.Select(&tasks, `SELECT * FROM tasks WHERE user_id=$1 ORDER BY "created_at";`, id)
+	var tasks []TaskResource
+	err = db.Select(&tasks, `SELECT tasks.id, tasks.created_at, tasks.name, tasks.description, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id WHERE user_id=$1;`, id)
 	if err != nil {
 		log.Printf("couldn't select from tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -114,8 +114,8 @@ func getTasksIDCommentsHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	var comments []Comment
-	err = db.Select(&comments, `SELECT * FROM comments WHERE task_id=$1 ORDER BY "created_at";`, taskID)
+	var comments []CommentResource
+	err = db.Select(&comments, `SELECT comments.id, comments.created_at, comments.content, comments.task_id, users.id AS "user.id", users.username AS "user.username" FROM comments JOIN users ON comments.user_id = users.id WHERE task_id = $1;`, taskID)
 	if err != nil {
 		log.Printf("couldn't select from comments: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -130,8 +130,8 @@ func getUsersIDCommentsHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	var comments []Comment
-	err = db.Select(&comments, `SELECT * FROM comments WHERE user_id=$1 ORDER BY "created_at";`, userID)
+	var comments []CommentResource
+	err = db.Select(&comments, `SELECT comments.id, comments.created_at, comments.content, comments.task_id, users.id AS "user.id", users.username AS "user.username" FROM comments JOIN users ON comments.user_id = users.id WHERE user_id = $1;`, userID)
 	if err != nil {
 		log.Printf("couldn't select from tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)

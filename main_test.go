@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"sort"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
@@ -99,16 +98,15 @@ func TestGetTasks(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
 	}
-
-	var tasks []Task
+	var tasks []TaskResource
 	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
 		t.Errorf("couldn't decode body to JSON: %v", err)
 	}
 	if len(tasks) != 3 {
 		t.Errorf("expected 3 tasks; got %d (%+v)", len(tasks), tasks)
 	}
-	if !sort.IsSorted(TasksByCreatedAt(tasks)) {
-		t.Errorf("tasks aren't sorted")
+	if tasks[0].User.Username != "Alice" {
+		t.Errorf("expected first task to embed username %q; got %q", "Alice", tasks[0].User.Username)
 	}
 }
 
@@ -122,12 +120,15 @@ func TestGetTasksID(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
 	}
-	var task Task
+	var task TaskResource
 	if err := json.NewDecoder(resp.Body).Decode(&task); err != nil {
 		t.Errorf("couldn't decode body to JSON: %v", err)
 	}
 	if task.ID != 1 {
 		t.Errorf("expected id 1; got %d (%+v)", task.ID, task)
+	}
+	if task.User.Username != "Alice" {
+		t.Errorf("expected username %q; got %q", "Alice", task.User.Username)
 	}
 }
 
@@ -183,12 +184,12 @@ func TestPostTasks(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
 	}
-	var task Task
+	var task TaskResource
 	if err := json.NewDecoder(resp.Body).Decode(&task); err != nil {
 		t.Errorf("couldn't decode body to JSON: %v", err)
 	}
-	if task.UserID != 1 {
-		t.Errorf("expected user_id 1; got %v", task.UserID)
+	if task.User.Username != "Alice" {
+		t.Errorf("expected username %q; got %q", "Alice", task.User.Username)
 	}
 	if task.Name != name {
 		t.Errorf("expected name %q; got %q", name, task.Name)
@@ -263,15 +264,17 @@ func TestGetUsersIDTasks(t *testing.T) {
 		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
 	}
 
-	var tasks []Task
+	var tasks []TaskResource
 	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
 		t.Errorf("couldn't decode body to JSON: %v", err)
 	}
 	if len(tasks) != 3 {
 		t.Errorf("expected 3 tasks; got %d (%+v)", len(tasks), tasks)
 	}
-	if !sort.IsSorted(TasksByCreatedAt(tasks)) {
-		t.Errorf("tasks aren't sorted")
+	for _, task := range tasks {
+		if task.User.Username != "Alice" {
+			t.Errorf("expected username %q; got %q", "Alice", task.User.Username)
+		}
 	}
 }
 
@@ -285,7 +288,7 @@ func TestGetUsersIDTasksDoesntExist(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
 	}
-	var tasks []Task
+	var tasks []TaskResource
 	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
 		t.Errorf("couldn't decode body to JSON: %v", err)
 	}
@@ -359,15 +362,23 @@ func TestGetTasksIDComments(t *testing.T) {
 		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
 	}
 
-	var comments []Comment
+	var comments []CommentResource
 	if err := json.NewDecoder(resp.Body).Decode(&comments); err != nil {
 		t.Errorf("couldn't decode body to JSON: %v", err)
 	}
 	if len(comments) != 3 {
 		t.Errorf("expected 3 comments; got %d (%+v)", len(comments), comments)
 	}
-	if !sort.IsSorted(CommentsByCreatedAt(comments)) {
-		t.Errorf("comments aren't sorted")
+	for _, comment := range comments {
+		if comment.TaskID != 1 {
+			t.Errorf("expected task_id 1; got %d", comment.TaskID)
+		}
+	}
+	if len(comments) == 0 {
+		t.FailNow()
+	}
+	if comments[0].User.Username != "Alice" {
+		t.Errorf("expected first comment to embed username %q; got %q", "Alice", comments[0].User.Username)
 	}
 }
 
@@ -382,14 +393,22 @@ func TestGetUsersIDComments(t *testing.T) {
 		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
 	}
 
-	var comments []Comment
+	var comments []CommentResource
 	if err := json.NewDecoder(resp.Body).Decode(&comments); err != nil {
 		t.Errorf("couldn't decode body to JSON: %v", err)
 	}
 	if len(comments) != 2 {
 		t.Errorf("expected 2 comments; got %d (%+v)", len(comments), comments)
 	}
-	if !sort.IsSorted(CommentsByCreatedAt(comments)) {
-		t.Errorf("comments aren't sorted")
+	for _, comment := range comments {
+		if comment.User.Username != "Alice" {
+			t.Errorf("expected username %q; got %q", "Alice", comment.User.Username)
+		}
+	}
+	if len(comments) == 0 {
+		t.FailNow()
+	}
+	if comments[0].TaskID != 1 {
+		t.Errorf("expected first comment to have task_id 1; got %d", comments[0].TaskID)
 	}
 }
