@@ -252,25 +252,6 @@ func TestPostTasksBadAuthentication(t *testing.T) {
 	}
 }
 
-func TestPatchTasksID(t *testing.T) {
-	marshalledTask, err := json.Marshal(Task{Name: "New name for this task"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	req, err := http.NewRequest("PATCH", ts.URL+"/tasks/1", bytes.NewReader(marshalledTask))
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Errorf("http request failed: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusNoContent {
-		t.Errorf("expected status code %v; got %v", http.StatusNoContent, resp.StatusCode)
-	}
-}
-
 func TestGetUsersIDTasks(t *testing.T) {
 	resp, err := http.Get(ts.URL + "/users/1/tasks")
 	if err != nil {
