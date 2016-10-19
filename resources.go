@@ -12,7 +12,7 @@ type TaskResource struct {
 	CreatedAt   time.Time    `db:"created_at" json:"created_at"`
 	User        UserResource `json:"user"`
 	Name        string       `json:"name"`
-	Description string       `json:"description"`
+	Description string       `json:"description,omitempty"`
 }
 
 type CommentResource struct {
