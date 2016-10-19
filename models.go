@@ -4,7 +4,7 @@ import "time"
 
 type Model struct {
 	ID        int       `json:"id,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty" db:"created_at"`
 }
 
 type User struct {
@@ -15,7 +15,7 @@ type User struct {
 
 type Task struct {
 	Model
-	UserID      int    `json:",omitempty"`
+	UserID      int    `json:",omitempty" db:"user_id"`
 	Name        string `json:",omitempty" binding:"required"`
 	Description string `json:"description,omitempty"`
 }
@@ -28,8 +28,8 @@ func (t TasksByCreatedAt) Less(i, j int) bool { return t[i].CreatedAt.Before(t[j
 
 type Comment struct {
 	Model
-	TaskID  int    `json:",omitempty"`
-	UserID  int    `json:",omitempty"`
+	TaskID  int    `json:",omitempty" db:"task_id"`
+	UserID  int    `json:",omitempty" db:"user_id"`
 	Content string `json:",omitempty" binding:"required"`
 }
 type CommentsByCreatedAt []Comment

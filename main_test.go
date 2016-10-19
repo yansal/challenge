@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,6 +11,8 @@ import (
 	"os"
 	"sort"
 	"testing"
+
+	"github.com/jmoiron/sqlx"
 )
 
 func TestMain(m *testing.M) {
@@ -20,9 +21,7 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 	exitCode := m.Run()
-	if err := teardown(); err != nil {
-		log.Fatal(err)
-	}
+	teardown()
 	os.Exit(exitCode)
 }
 
@@ -32,21 +31,10 @@ func setup() error {
 	ts = httptest.NewServer(router)
 
 	var err error
-	if db, err = sql.Open("postgres", "dbname=challengetest sslmode=disable"); err != nil {
-		return fmt.Errorf("couldn't open database connection: %v", err)
+	if db, err = sqlx.Connect("postgres", "dbname=challengetest sslmode=disable"); err != nil {
+		return fmt.Errorf("couldn't connect to database: %v", err)
 	}
-	if err := db.Ping(); err != nil {
-		return fmt.Errorf("couldn't ping database: %v", err)
-	}
-	if err := createTableUsers(); err != nil {
-		return err
-	}
-	if err := createTableTasks(); err != nil {
-		return err
-	}
-	if err := createTableComments(); err != nil {
-		return err
-	}
+	db.MustExec(create)
 	if err := seedTableUsers(); err != nil {
 		return err
 	}
@@ -97,17 +85,8 @@ func seedTableComments() error {
 	return nil
 }
 
-func teardown() error {
-	if _, err := db.Exec("DROP TABLE comments;"); err != nil {
-		return fmt.Errorf("couldn't drop comments table: %v", err)
-	}
-	if _, err := db.Exec("DROP TABLE tasks;"); err != nil {
-		return fmt.Errorf("couldn't drop tasks table: %v", err)
-	}
-	if _, err := db.Exec("DROP TABLE users;"); err != nil {
-		return fmt.Errorf("couldn't drop tasks table: %v", err)
-	}
-	return nil
+func teardown() {
+	db.MustExec(`DROP TABLE comments; DROP TABLE tasks; DROP TABLE users;`)
 }
 
 func TestGetTasks(t *testing.T) {

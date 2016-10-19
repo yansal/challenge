@@ -9,11 +9,13 @@ import (
 
 	"gopkg.in/gin-gonic/gin.v1"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
 func getTasksHandler(c *gin.Context) {
-	tasks, err := selectTasks()
+	var tasks []Task
+	err := db.Select(&tasks, `SELECT * FROM tasks ;`)
 	if err != nil {
 		log.Printf("couldn't select from tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -28,7 +30,8 @@ func getTasksIDHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	task, err := selectTask(id)
+	var task Task
+	err = db.Get(&task, `SELECT * FROM tasks WHERE id=$1`, id)
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, nil)
 		return
@@ -68,7 +71,8 @@ func getUsersIDTasksHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	tasks, err := selectTasksWhereUser(id)
+	var tasks []Task
+	err = db.Select(&tasks, `SELECT * FROM tasks WHERE user_id=$1 ORDER BY "created_at";`, id)
 	if err != nil {
 		log.Printf("couldn't select from tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -110,7 +114,8 @@ func getTasksIDCommentsHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	comments, err := selectCommentsWhereTask(taskID)
+	var comments []Comment
+	err = db.Select(&comments, `SELECT * FROM comments WHERE task_id=$1 ORDER BY "created_at";`, taskID)
 	if err != nil {
 		log.Printf("couldn't select from comments: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -125,7 +130,8 @@ func getUsersIDCommentsHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	comments, err := selectCommentsWhereUser(userID)
+	var comments []Comment
+	err = db.Select(&comments, `SELECT * FROM comments WHERE user_id=$1 ORDER BY "created_at";`, userID)
 	if err != nil {
 		log.Printf("couldn't select from tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -142,7 +148,8 @@ func authMiddleware(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-	user, err := selectUser(fields[1])
+	var user User
+	err := db.Get(&user, `SELECT * FROM users WHERE token=$1`, fields[1])
 	if err == sql.ErrNoRows {
 		c.Header("WWW-Authenticate", "Token")
 		c.AbortWithStatus(http.StatusUnauthorized)
@@ -157,7 +164,7 @@ func authMiddleware(c *gin.Context) {
 }
 
 var (
-	db     *sql.DB
+	db     *sqlx.DB
 	router *gin.Engine
 )
 
@@ -175,9 +182,9 @@ func init() {
 
 func main() {
 	var err error
-	db, err = sql.Open("postgres", "sslmode=disable")
+	db, err = sqlx.Connect("postgres", "sslmode=disable")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("couldn't connect to database: %v", err)
 	}
 	log.Fatal(router.Run())
 }
