@@ -3,8 +3,8 @@ package main
 import "time"
 
 type Model struct {
-	ID        int       `json:"id,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty" db:"created_at"`
+	ID        int
+	CreatedAt time.Time `db:"created_at"`
 }
 
 type User struct {
@@ -15,14 +15,14 @@ type User struct {
 
 type Task struct {
 	Model
-	UserID      int    `json:",omitempty" db:"user_id"`
-	Name        string `json:",omitempty" binding:"required"`
-	Description string `json:"description,omitempty"`
+	UserID      int    `json:",omitempty"`
+	Name        string `binding:"required"`
+	Description string
 }
 
 type Comment struct {
 	Model
-	TaskID  int    `json:",omitempty" db:"task_id"`
-	UserID  int    `json:",omitempty" db:"user_id"`
-	Content string `json:",omitempty" binding:"required"`
+	TaskID  int    `json:",omitempty"`
+	UserID  int    `json:",omitempty"`
+	Content string `binding:"required"`
 }
