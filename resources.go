@@ -2,13 +2,17 @@ package main
 
 import "time"
 
+type Resource struct {
+	ID int `json:"id"`
+}
+
 type UserResource struct {
-	ID       int    `json:"id"`
+	Resource
 	Username string `json:"username"`
 }
 
 type TaskResource struct {
-	ID          int          `json:"id"`
+	Resource
 	CreatedAt   time.Time    `db:"created_at" json:"created_at"`
 	User        UserResource `json:"user"`
 	Name        string       `json:"name"`
@@ -16,7 +20,7 @@ type TaskResource struct {
 }
 
 type CommentResource struct {
-	ID        int          `json:"id"`
+	Resource
 	CreatedAt time.Time    `db:"created_at" json:"created_at"`
 	User      UserResource `json:"user"`
 	TaskID    int          `db:"task_id" json:"task_id"`
