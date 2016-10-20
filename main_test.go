@@ -351,6 +351,27 @@ func TestPostTasksIDCommentsNoContent(t *testing.T) {
 	}
 }
 
+func TestPostTasksIDCommentsDoesntExist(t *testing.T) {
+	marshalledComment, err := json.Marshal(Comment{Content: "This task doesn't exist"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", ts.URL+"/tasks/123456/comments", bytes.NewReader(marshalledComment))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Errorf("http request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusInternalServerError {
+		t.Errorf("unexpected status code %v", http.StatusInternalServerError)
+	}
+}
+
 func TestGetTasksIDComments(t *testing.T) {
 	resp, err := http.Get(ts.URL + "/tasks/1/comments")
 	if err != nil {
