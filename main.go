@@ -126,6 +126,17 @@ func postTasksIDCommentsHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
+	var i int
+	err = db.Get(&i, "SELECT 1 FROM tasks WHERE id=$1", taskID)
+	if err == sql.ErrNoRows {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("couldn't select from tasks: %v:", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 
 	var comment = Comment{UserID: user.(User).ID, TaskID: taskID}
 	if err := c.BindJSON(&comment); err != nil {

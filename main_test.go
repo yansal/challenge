@@ -274,8 +274,8 @@ func TestPostTasksIDCommentsDoesntExist(t *testing.T) {
 	resp, _ := http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusInternalServerError {
-		t.Errorf("unexpected status code %v", http.StatusInternalServerError)
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("expected status code %v; got %v", http.StatusNotFound, resp.StatusCode)
 	}
 }
 
