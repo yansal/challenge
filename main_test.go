@@ -279,6 +279,19 @@ func TestPostTasksIDCommentsDoesntExist(t *testing.T) {
 	}
 }
 
+func TestPostTasksIDCommentsBadID(t *testing.T) {
+	marshalledComment, _ := json.Marshal(Comment{Content: "This is not a task ID"})
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/tasks/hello/comments", bytes.NewReader(marshalledComment))
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json")
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
+	}
+}
+
 func TestGetTasksIDComments(t *testing.T) {
 	resp, _ := http.Get(ts.URL + "/tasks/1/comments")
 	defer resp.Body.Close()
@@ -353,5 +366,16 @@ func TestPatchTasksIDDoesntExist(t *testing.T) {
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("expected status code %v; got %v", http.StatusNotFound, resp.StatusCode)
+	}
+}
+
+func TestPatchTasksBadID(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/hello", nil)
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
 	}
 }
