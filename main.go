@@ -58,7 +58,7 @@ func postTasksHandler(c *gin.Context) {
 		return
 	}
 	if err := insertTask(task); err != nil {
-		log.Printf("couldn't insert into tasks: %v", err)
+		log.Print(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -133,7 +133,7 @@ func postTasksIDCommentsHandler(c *gin.Context) {
 		return
 	}
 	if err := insertComment(comment); err != nil {
-		log.Printf("couldn't insert into comments: %v", err)
+		log.Print(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
