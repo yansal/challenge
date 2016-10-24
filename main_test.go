@@ -131,7 +131,7 @@ func TestGetTasksIDBadID(t *testing.T) {
 func TestPostTasks(t *testing.T) {
 	name := "Posted task"
 	marshalledTask, _ := json.Marshal(Task{Name: name})
-	req, _ := http.NewRequest("POST", ts.URL+"/tasks/", bytes.NewReader(marshalledTask))
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/tasks/", bytes.NewReader(marshalledTask))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
@@ -161,7 +161,7 @@ func TestPostTasks(t *testing.T) {
 
 func TestPostTasksNoName(t *testing.T) {
 	task, _ := json.Marshal(Task{})
-	req, _ := http.NewRequest("POST", ts.URL+"/tasks/", bytes.NewReader(task))
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/tasks/", bytes.NewReader(task))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
@@ -184,7 +184,7 @@ func TestPostTasksUnauthenticated(t *testing.T) {
 
 func TestPostTasksBadAuthentication(t *testing.T) {
 	marshalledTask, _ := json.Marshal(Task{Name: "Posted task"})
-	req, _ := http.NewRequest("POST", ts.URL+"/tasks/", bytes.NewReader(marshalledTask))
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/tasks/", bytes.NewReader(marshalledTask))
 	req.Header.Add("Authorization", "Token 123456")
 	req.Header.Add("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
@@ -242,7 +242,7 @@ func TestGetUsersIDTasksBadID(t *testing.T) {
 
 func TestPostTasksIDComments(t *testing.T) {
 	marshalledComment, _ := json.Marshal(Comment{Content: "Posted comment"})
-	req, _ := http.NewRequest("POST", ts.URL+"/tasks/1/comments", bytes.NewReader(marshalledComment))
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/tasks/1/comments", bytes.NewReader(marshalledComment))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
@@ -255,7 +255,7 @@ func TestPostTasksIDComments(t *testing.T) {
 
 func TestPostTasksIDCommentsNoContent(t *testing.T) {
 	marshalledComment, _ := json.Marshal(Comment{})
-	req, _ := http.NewRequest("POST", ts.URL+"/tasks/1/comments", bytes.NewReader(marshalledComment))
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/tasks/1/comments", bytes.NewReader(marshalledComment))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
@@ -268,7 +268,7 @@ func TestPostTasksIDCommentsNoContent(t *testing.T) {
 
 func TestPostTasksIDCommentsDoesntExist(t *testing.T) {
 	marshalledComment, _ := json.Marshal(Comment{Content: "This task doesn't exist"})
-	req, _ := http.NewRequest("POST", ts.URL+"/tasks/123456/comments", bytes.NewReader(marshalledComment))
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/tasks/123456/comments", bytes.NewReader(marshalledComment))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
@@ -335,7 +335,7 @@ func TestGetUsersIDComments(t *testing.T) {
 }
 
 func TestPatchTasksIDForbidden(t *testing.T) {
-	req, _ := http.NewRequest("PATCH", ts.URL+"/tasks/3", nil)
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/3", nil)
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	resp, _ := http.DefaultClient.Do(req)
 	defer resp.Body.Close()
@@ -346,7 +346,7 @@ func TestPatchTasksIDForbidden(t *testing.T) {
 }
 
 func TestPatchTasksIDDoesntExist(t *testing.T) {
-	req, _ := http.NewRequest("PATCH", ts.URL+"/tasks/123456", nil)
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/123456", nil)
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	resp, _ := http.DefaultClient.Do(req)
 	defer resp.Body.Close()
