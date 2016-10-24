@@ -333,3 +333,25 @@ func TestGetUsersIDComments(t *testing.T) {
 		t.Errorf("expected first comment to have task_id 1; got %d", comments[0].TaskID)
 	}
 }
+
+func TestPatchTasksIDForbidden(t *testing.T) {
+	req, _ := http.NewRequest("PATCH", ts.URL+"/tasks/3", nil)
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("expected status code %v; got %v", http.StatusForbidden, resp.StatusCode)
+	}
+}
+
+func TestPatchTasksIDDoesntExist(t *testing.T) {
+	req, _ := http.NewRequest("PATCH", ts.URL+"/tasks/123456", nil)
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("expected status code %v; got %v", http.StatusNotFound, resp.StatusCode)
+	}
+}
