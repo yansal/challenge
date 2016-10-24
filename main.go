@@ -47,7 +47,7 @@ func getTasksIDHandler(c *gin.Context) {
 func postTasksHandler(c *gin.Context) {
 	user, exists := c.Get(gin.AuthUserKey)
 	if !exists {
-		log.Print("No user in POST /tasks/ handler")
+		log.Print("No user in POST /tasks/ handler context")
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -84,7 +84,7 @@ func getUsersIDTasksHandler(c *gin.Context) {
 func postTasksIDCommentsHandler(c *gin.Context) {
 	user, exists := c.Get(gin.AuthUserKey)
 	if !exists {
-		log.Print("No user in POST /tasks/:id/comments handler")
+		log.Print("No user in POST /tasks/:id/comments handler context")
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
