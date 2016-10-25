@@ -14,6 +14,7 @@ type UserResource struct {
 type TaskResource struct {
 	Resource
 	CreatedAt   time.Time    `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time    `db:"updated_at" json:"updated_at"`
 	User        UserResource `json:"user"`
 	Name        string       `json:"name"`
 	Description string       `json:"description,omitempty"`

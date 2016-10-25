@@ -15,7 +15,7 @@ import (
 
 func getTasksHandler(c *gin.Context) {
 	var tasks []TaskResource
-	err := db.Select(&tasks, `SELECT tasks.id, tasks.created_at, tasks.name, tasks.description, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id;`)
+	err := db.Select(&tasks, `SELECT tasks.id, tasks.created_at, tasks.updated_at, tasks.name, tasks.description, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id;`)
 	if err != nil {
 		log.Printf("couldn't select from tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -31,7 +31,7 @@ func getTasksIDHandler(c *gin.Context) {
 		return
 	}
 	var task TaskResource
-	err = db.Get(&task, `SELECT tasks.id, tasks.created_at, tasks.name, tasks.description, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id WHERE tasks.id = $1;`, id)
+	err = db.Get(&task, `SELECT tasks.id, tasks.created_at, tasks.updated_at, tasks.name, tasks.description, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id WHERE tasks.id = $1;`, id)
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, nil)
 		return
@@ -79,7 +79,7 @@ func patchTasksIDHandler(c *gin.Context) {
 		return
 	}
 	var task TaskResource
-	err = db.Get(&task, `SELECT tasks.id, tasks.created_at, tasks.name, tasks.description, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id WHERE tasks.id = $1;`, taskID)
+	err = db.Get(&task, `SELECT tasks.id, tasks.created_at, tasks.updated_at, tasks.name, tasks.description, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id WHERE tasks.id = $1;`, taskID)
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, nil)
 		return
@@ -104,7 +104,7 @@ func getUsersIDTasksHandler(c *gin.Context) {
 		return
 	}
 	var tasks []TaskResource
-	err = db.Select(&tasks, `SELECT tasks.id, tasks.created_at, tasks.name, tasks.description, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id WHERE user_id=$1;`, id)
+	err = db.Select(&tasks, `SELECT tasks.id, tasks.created_at, tasks.updated_at, tasks.name, tasks.description, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id WHERE user_id=$1;`, id)
 	if err != nil {
 		log.Printf("couldn't select from tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
