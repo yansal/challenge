@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
-	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -16,9 +14,7 @@ import (
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	if err := setup(); err != nil {
-		log.Fatal(err)
-	}
+	setup()
 	exitCode := m.Run()
 	teardown()
 	os.Exit(exitCode)
@@ -26,51 +22,35 @@ func TestMain(m *testing.M) {
 
 var ts *httptest.Server
 
-func setup() error {
+func setup() {
 	ts = httptest.NewServer(router)
 
-	var err error
-	if db, err = sqlx.Connect("postgres", "dbname=challengetest sslmode=disable"); err != nil {
-		return fmt.Errorf("couldn't connect to database: %v", err)
-	}
+	db = sqlx.MustConnect("postgres", "dbname=challengetest sslmode=disable")
 	db.MustExec(create)
-
-	// Seed users
 	for _, user := range []User{
 		{Username: "Alice", Token: "077000ac559e1ba0fe4f303b614f30da6306341f"},
 		{Username: "Bob", Token: "ef2e253a2b4564ae949b053025c845552f2e99cc"},
 	} {
-		if err := insertUser(user); err != nil {
-			return err
-		}
+		db.MustExec(insertUser, user.Username, user.Token)
 	}
-
-	// Seed tasks
 	for _, task := range []Task{
 		{Name: "First task", UserID: 1, Description: "This is the first task"},
 		{Name: "Second task", UserID: 1, Description: "This is the second task"},
 		{Name: "Third task", UserID: 2, Description: "This is the third task"},
 	} {
-		if err := insertTask(task); err != nil {
-			return err
-		}
+		db.MustExec(insertTask, task.Name, task.UserID, task.Description)
 	}
-
-	// Seed comments
 	for _, comment := range []Comment{
 		{TaskID: 1, UserID: 1, Content: "This is the first comment"},
 		{TaskID: 1, UserID: 2, Content: "This is the second comment"},
 		{TaskID: 2, UserID: 2, Content: "This is the third comment"},
 	} {
-		if err := insertComment(comment); err != nil {
-			return err
-		}
+		db.MustExec(insertComment, comment.UserID, comment.TaskID, comment.Content)
 	}
-	return nil
 }
 
 func teardown() {
-	db.MustExec(`DROP TABLE comments; DROP TABLE tasks; DROP TABLE users;`)
+	db.MustExec(drop)
 }
 
 func TestGetTasks(t *testing.T) {
