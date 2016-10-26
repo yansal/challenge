@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sort"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
@@ -46,20 +47,23 @@ func TestGetTasks(t *testing.T) {
 	if len(tasks) != 3 {
 		t.Errorf("expected 3 tasks; got %d (%+v)", len(tasks), tasks)
 	}
-	if tasks[0].ID != 1 {
-		t.Errorf("expected first task to have id 1; got %d", tasks[0].ID)
+	if tasks[0].ID != 3 {
+		t.Errorf("expected first task to have id 3; got %d", tasks[0].ID)
 	}
-	if tasks[0].Name != "First task" {
-		t.Errorf("expected first task to have name %q; got %q", "First task", tasks[0].Name)
+	if tasks[0].Name != "Third task" {
+		t.Errorf("expected first task to have name %q; got %q", "Third task", tasks[0].Name)
 	}
-	if tasks[0].Description != "This is the first task" {
-		t.Errorf("expected first task to have description %q; got %q", "This is the first task", tasks[0].Description)
+	if tasks[0].Description != "This is the third task" {
+		t.Errorf("expected first task to have description %q; got %q", "This is the third task", tasks[0].Description)
 	}
 	if tasks[0].Progression != 0 {
 		t.Errorf("expected first task to have progression 0; got %d", tasks[0].Progression)
 	}
-	if tasks[0].User.Username != "Alice" {
+	if tasks[0].User.Username != "Bob" {
 		t.Errorf("expected first task to embed username %q; got %q", "Alice", tasks[0].User.Username)
+	}
+	if !sort.IsSorted(TasksByCreatedAt(tasks)) {
+		t.Error("tasks aren't sorted by created_at")
 	}
 }
 
@@ -204,6 +208,9 @@ func TestGetUsersIDTasks(t *testing.T) {
 			t.Errorf("expected username %q; got %q", "Alice", task.User.Username)
 		}
 	}
+	if !sort.IsSorted(TasksByCreatedAt(tasks)) {
+		t.Error("tasks aren't sorted by created_at")
+	}
 }
 
 func TestGetUsersIDTasksDoesntExist(t *testing.T) {
@@ -302,6 +309,9 @@ func TestGetTasksIDComments(t *testing.T) {
 			t.Errorf("expected task_id 1; got %d", comment.TaskID)
 		}
 	}
+	if !sort.IsSorted(CommentsByCreatedAt(comments)) {
+		t.Error("comments aren't sorted by created_at")
+	}
 	if len(comments) == 0 {
 		t.FailNow()
 	}
@@ -328,6 +338,9 @@ func TestGetUsersIDComments(t *testing.T) {
 		if comment.User.Username != "Alice" {
 			t.Errorf("expected username %q; got %q", "Alice", comment.User.Username)
 		}
+	}
+	if !sort.IsSorted(CommentsByCreatedAt(comments)) {
+		t.Error("comments aren't sorted by created_at")
 	}
 	if len(comments) == 0 {
 		t.FailNow()
