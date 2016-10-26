@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 
 	"gopkg.in/gin-gonic/gin.v1"
 
@@ -19,7 +20,7 @@ func main() {
 	var seedFlag = flag.Bool("seed", false, "Seed database")
 	flag.Parse()
 
-	db = sqlx.MustConnect("postgres", "sslmode=disable")
+	db = sqlx.MustConnect("postgres", os.Getenv("DATABASE_URL"))
 
 	if *seedFlag {
 		seed()
