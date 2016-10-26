@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -75,6 +76,12 @@ func postTasksHandler(c *gin.Context) {
 	c.Data(http.StatusCreated, "", nil)
 }
 
+type Patches []struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value"`
+}
+
 func patchTasksIDHandler(c *gin.Context) {
 	user, exists := c.Get(gin.AuthUserKey)
 	if !exists {
@@ -94,17 +101,58 @@ func patchTasksIDHandler(c *gin.Context) {
 		c.JSON(http.StatusNotFound, nil)
 		return
 	}
+	if err != nil {
+		log.Printf("couldn't select from tasks: %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 	if task.User.ID != user.(User).ID {
 		c.AbortWithStatus(http.StatusForbidden)
 		return
 	}
-	if err != nil {
-		log.Print(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+
+	// TODO: Validate patch document
+	var patches Patches
+	if err := c.BindJSON(&patches); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
-	// TODO: Validate PATCH document and patch the resource
+	// TODO: Apply patch document
+	tx, err := db.Begin()
+	if err != nil {
+		log.Printf("couldn't begin: %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+	for _, patch := range patches {
+		if patch.Op != "replace" {
+			c.AbortWithError(http.StatusBadRequest, fmt.Errorf(`op must be "replace"; got %v`, patch.Op))
+			return
+		}
+		if patch.Path != "/name" {
+			c.AbortWithError(http.StatusBadRequest, fmt.Errorf(`path must be "/name"; got %v`, patch.Op))
+			return
+		}
+		switch t := patch.Value.(type) {
+		case string:
+		default:
+			c.AbortWithError(http.StatusBadRequest, fmt.Errorf(`value must be a string; got %T`, t))
+			return
+		}
+		if _, err := tx.Exec(`UPDATE tasks SET name = $1 WHERE id = $2;`, patch.Value, taskID); err != nil {
+			log.Printf("couldn't update tasks: %v", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		log.Printf("couldn't commit: %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.Data(http.StatusNoContent, "", nil)
 }
 
 func getUsersIDTasksHandler(c *gin.Context) {

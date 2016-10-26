@@ -369,3 +369,43 @@ func TestPatchTasksBadID(t *testing.T) {
 		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
 	}
 }
+
+func TestPatchTasksUpdateName(t *testing.T) {
+	name := "Patched name"
+	patch, _ := json.Marshal(Patches{{Op: "replace", Path: "/name", Value: name}})
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json")
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("expected status code %v; got %v", http.StatusNoContent, resp.StatusCode)
+	}
+
+	resp, _ = http.Get(ts.URL + "/tasks/1")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
+	}
+
+	var task TaskResource
+	json.NewDecoder(resp.Body).Decode(&task)
+
+	if task.ID != 1 {
+		t.Errorf("expected id 1; got %d", task.ID)
+	}
+	if task.Name != name {
+		t.Errorf("expected name %q; got %q", name, task.Name)
+	}
+	if task.Description != "This is the first task" {
+		t.Errorf("expected description %q; got %q", "This is the first task", task.Description)
+	}
+	if task.Progression != 0 {
+		t.Errorf("expected progression 0; got %d", task.Progression)
+	}
+	if task.User.Username != "Alice" {
+		t.Errorf("expected username %q; got %q", "Alice", task.User.Username)
+	}
+}
