@@ -4,4 +4,4 @@ services:
   - postgresql
 
 before_script:
-  - psql -c 'create database challengetest;' -U postgres
+  - psql -c 'create database task-manager-test;' -U postgres
