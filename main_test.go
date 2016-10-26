@@ -24,7 +24,7 @@ var ts *httptest.Server
 
 func setup() {
 	ts = httptest.NewServer(router)
-	db = sqlx.MustConnect("postgres", "dbname=challengetest sslmode=disable")
+	db = sqlx.MustConnect("postgres", "dbname=taskmanagertest sslmode=disable")
 	seed()
 }
 
