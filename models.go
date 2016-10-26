@@ -19,6 +19,7 @@ type Task struct {
 	UserID      int    `json:",omitempty"`
 	Name        string `binding:"required"`
 	Description string
+	Progression int
 }
 
 type Comment struct {

@@ -18,6 +18,7 @@ type TaskResource struct {
 	User        UserResource `json:"user"`
 	Name        string       `json:"name"`
 	Description string       `json:"description,omitempty"`
+	Progression int
 }
 
 type CommentResource struct {

@@ -24,29 +24,8 @@ var ts *httptest.Server
 
 func setup() {
 	ts = httptest.NewServer(router)
-
 	db = sqlx.MustConnect("postgres", "dbname=challengetest sslmode=disable")
-	db.MustExec(create)
-	for _, user := range []User{
-		{Username: "Alice", Token: "077000ac559e1ba0fe4f303b614f30da6306341f"},
-		{Username: "Bob", Token: "ef2e253a2b4564ae949b053025c845552f2e99cc"},
-	} {
-		db.MustExec(insertUser, user.Username, user.Token)
-	}
-	for _, task := range []Task{
-		{Name: "First task", UserID: 1, Description: "This is the first task"},
-		{Name: "Second task", UserID: 1, Description: "This is the second task"},
-		{Name: "Third task", UserID: 2, Description: "This is the third task"},
-	} {
-		db.MustExec(insertTask, task.Name, task.UserID, task.Description)
-	}
-	for _, comment := range []Comment{
-		{TaskID: 1, UserID: 1, Content: "This is the first comment"},
-		{TaskID: 1, UserID: 2, Content: "This is the second comment"},
-		{TaskID: 2, UserID: 2, Content: "This is the third comment"},
-	} {
-		db.MustExec(insertComment, comment.UserID, comment.TaskID, comment.Content)
-	}
+	seed()
 }
 
 func teardown() {
@@ -67,6 +46,18 @@ func TestGetTasks(t *testing.T) {
 	if len(tasks) != 3 {
 		t.Errorf("expected 3 tasks; got %d (%+v)", len(tasks), tasks)
 	}
+	if tasks[0].ID != 1 {
+		t.Errorf("expected first task to have id 1; got %d", tasks[0].ID)
+	}
+	if tasks[0].Name != "First task" {
+		t.Errorf("expected first task to have name %q; got %q", "First task", tasks[0].Name)
+	}
+	if tasks[0].Description != "This is the first task" {
+		t.Errorf("expected first task to have description %q; got %q", "This is the first task", tasks[0].Description)
+	}
+	if tasks[0].Progression != 0 {
+		t.Errorf("expected first task to have progression 0; got %d", tasks[0].Progression)
+	}
 	if tasks[0].User.Username != "Alice" {
 		t.Errorf("expected first task to embed username %q; got %q", "Alice", tasks[0].User.Username)
 	}
@@ -82,8 +73,18 @@ func TestGetTasksID(t *testing.T) {
 
 	var task TaskResource
 	json.NewDecoder(resp.Body).Decode(&task)
+
 	if task.ID != 1 {
-		t.Errorf("expected id 1; got %d (%+v)", task.ID, task)
+		t.Errorf("expected id 1; got %d", task.ID)
+	}
+	if task.Name != "First task" {
+		t.Errorf("expected name %q; got %q", "First task", task.Name)
+	}
+	if task.Description != "This is the first task" {
+		t.Errorf("expected description %q; got %q", "This is the first task", task.Description)
+	}
+	if task.Progression != 0 {
+		t.Errorf("expected progression 0; got %d", task.Progression)
 	}
 	if task.User.Username != "Alice" {
 		t.Errorf("expected username %q; got %q", "Alice", task.User.Username)
@@ -131,11 +132,20 @@ func TestPostTasks(t *testing.T) {
 	var task TaskResource
 	json.NewDecoder(resp.Body).Decode(&task)
 
-	if task.User.Username != "Alice" {
-		t.Errorf("expected username %q; got %q", "Alice", task.User.Username)
+	if task.ID != 4 {
+		t.Errorf("expected id 4; got %d", task.ID)
 	}
 	if task.Name != name {
 		t.Errorf("expected name %q; got %q", name, task.Name)
+	}
+	if task.Description != "" {
+		t.Errorf("expected empty description; got %q", task.Description)
+	}
+	if task.Progression != 0 {
+		t.Errorf("expected progression 0; got %d", task.Progression)
+	}
+	if task.User.Username != "Alice" {
+		t.Errorf("expected username %q; got %q", "Alice", task.User.Username)
 	}
 }
 
