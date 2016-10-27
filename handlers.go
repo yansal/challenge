@@ -141,6 +141,8 @@ func patchTasksIDHandler(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
+
+	// Validate patch document
 	for _, patch := range patches {
 		_, err := govalidator.ValidateStruct(patch)
 		if err != nil {
@@ -153,6 +155,7 @@ func patchTasksIDHandler(c *gin.Context) {
 		}
 	}
 
+	// Apply patch document
 	tx, err := db.Beginx()
 	if err != nil {
 		log.Printf("couldn't begin: %v", err)
