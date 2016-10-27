@@ -297,6 +297,31 @@ func TestPostTasksIDCommentsBadID(t *testing.T) {
 	}
 }
 
+func TestGetTasksIDCommentsBadRequest(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/hello/comments")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
+	}
+}
+
+func TestGetTasksIDCommentsTaskDoesntExist(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/123456/comments")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
+	}
+	var comments []CommentResource
+	if err := json.NewDecoder(resp.Body).Decode(&comments); err != nil {
+		t.Errorf("couldn't decode body to JSON: %v", err)
+	}
+	if len(comments) != 0 {
+		t.Errorf("expected 0 comments; got %d (%+v)", len(comments), comments)
+	}
+}
+
 func TestGetTasksIDComments(t *testing.T) {
 	resp, _ := http.Get(ts.URL + "/tasks/1/comments")
 	defer resp.Body.Close()
@@ -325,6 +350,31 @@ func TestGetTasksIDComments(t *testing.T) {
 	}
 	if comments[0].User.Username != "Alice" {
 		t.Errorf("expected first comment to embed username %q; got %q", "Alice", comments[0].User.Username)
+	}
+}
+
+func TestGetUsersIDCommentsBadRequest(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/users/hello/comments")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
+	}
+}
+
+func TestGetUsersIDCommentsUserDoesntExist(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/users/123456/comments")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
+	}
+	var comments []CommentResource
+	if err := json.NewDecoder(resp.Body).Decode(&comments); err != nil {
+		t.Errorf("couldn't decode body to JSON: %v", err)
+	}
+	if len(comments) != 0 {
+		t.Errorf("expected 0 comments; got %d (%+v)", len(comments), comments)
 	}
 }
 
@@ -430,6 +480,22 @@ func TestPatchTasksBadContentType(t *testing.T) {
 	acceptPatch := resp.Header.Get("Accept-Patch")
 	if acceptPatch != "application/json-patch+json" {
 		t.Errorf(`expected "Accept-Patch" header %q; got %v`, "application/json-patch+json", acceptPatch)
+	}
+}
+
+func TestPatchTasksBadPatch(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/1")
+	defer resp.Body.Close()
+	patch, _ := json.Marshal(1)
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json-patch+json")
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
 	}
 }
 
