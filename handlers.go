@@ -119,6 +119,12 @@ func patchTasksIDHandler(c *gin.Context) {
 		return
 	}
 
+	if c.ContentType() != "application/json-patch+json" {
+		c.Header("Accept-Patch", "application/json-patch+json")
+		c.AbortWithStatus(http.StatusUnsupportedMediaType)
+		return
+	}
+
 	var patches TaskPatches
 	if err = c.BindJSON(&patches); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)

@@ -388,11 +388,27 @@ func TestPatchTasksBadID(t *testing.T) {
 	}
 }
 
+func TestPatchTasksBadContentType(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", nil)
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json")
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnsupportedMediaType {
+		t.Errorf("expected status code %v; got %v", http.StatusUnsupportedMediaType, resp.StatusCode)
+	}
+	acceptPatch := resp.Header.Get("Accept-Patch")
+	if acceptPatch != "application/json-patch+json" {
+		t.Errorf(`expected "Accept-Patch" header %q; got %v`, "application/json-patch+json", acceptPatch)
+	}
+}
+
 func TestPatchTasksNoOp(t *testing.T) {
 	patch, _ := json.Marshal(TaskPatches{{}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", "application/json-patch+json")
 	resp, _ := http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
@@ -405,7 +421,7 @@ func TestPatchTasksBadOp(t *testing.T) {
 	patch, _ := json.Marshal(TaskPatches{{Op: "qwerty"}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", "application/json-patch+json")
 	resp, _ := http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
@@ -418,7 +434,7 @@ func TestPatchTasksNoPath(t *testing.T) {
 	patch, _ := json.Marshal(TaskPatches{{Op: "replace"}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", "application/json-patch+json")
 	resp, _ := http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
@@ -431,7 +447,7 @@ func TestPatchTasksBadPath(t *testing.T) {
 	patch, _ := json.Marshal(TaskPatches{{Op: "replace", Path: "name"}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", "application/json-patch+json")
 	resp, _ := http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
@@ -444,7 +460,7 @@ func TestPatchTasksNoValue(t *testing.T) {
 	patch, _ := json.Marshal(TaskPatches{{Op: "replace", Path: "/name"}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", "application/json-patch+json")
 	resp, _ := http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
@@ -458,7 +474,7 @@ func TestPatchTasksUpdateName(t *testing.T) {
 	patch, _ := json.Marshal(TaskPatches{{Op: "replace", Path: "/name", Value: name}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", "application/json-patch+json")
 	resp, _ := http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
@@ -502,7 +518,7 @@ func TestPatchTasksUpdateDescriptionAndProgression(t *testing.T) {
 	})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/2", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", "application/json-patch+json")
 	resp, _ := http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
