@@ -153,6 +153,21 @@ func patchTasksIDHandler(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, fmt.Errorf(`"value" can't be null`))
 			return
 		}
+		switch patch.Value.(type) {
+		case float64:
+			if patch.Path != "/progression" {
+				c.JSON(http.StatusBadRequest, fmt.Errorf(`"value" doesn't have a correct type`))
+				return
+			}
+		case string:
+			if patch.Path != "/name" && patch.Path != "/description" {
+				c.JSON(http.StatusBadRequest, fmt.Errorf(`"value" doesn't have a correct type`))
+				return
+			}
+		default:
+			c.JSON(http.StatusBadRequest, fmt.Errorf(`"value" doesn't have a correct type`))
+			return
+		}
 	}
 
 	// Apply patch document

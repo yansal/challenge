@@ -668,3 +668,57 @@ func TestPatchTasksUpdateDescriptionAndProgression(t *testing.T) {
 		t.Errorf("expected username %q; got %q", "Alice", task.User.Username)
 	}
 }
+
+func TestPatchTasksBadType(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/2")
+	defer resp.Body.Close()
+	patch, _ := json.Marshal(TaskPatches{
+		{Op: "replace", Path: "/name", Value: []int{1, 2, 3}},
+	})
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/2", bytes.NewReader(patch))
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json-patch+json")
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
+	}
+}
+
+func TestPatchTasksBadNameType(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/2")
+	defer resp.Body.Close()
+	patch, _ := json.Marshal(TaskPatches{
+		{Op: "replace", Path: "/name", Value: 0},
+	})
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/2", bytes.NewReader(patch))
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json-patch+json")
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
+	}
+}
+
+func TestPatchTasksBadProgressionType(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/2")
+	defer resp.Body.Close()
+	patch, _ := json.Marshal(TaskPatches{
+		{Op: "replace", Path: "/progression", Value: "hello"},
+	})
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/2", bytes.NewReader(patch))
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("Content-Type", "application/json-patch+json")
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status code %v; got %v", http.StatusBadRequest, resp.StatusCode)
+	}
+}
