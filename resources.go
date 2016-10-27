@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"crypto/md5"
+	"fmt"
+	"time"
+)
 
 // Resource is a base resource with fields common to all resources
 type Resource struct {
@@ -23,6 +27,11 @@ type TaskResource struct {
 	Name        string       `json:"name"`
 	Description string       `json:"description,omitempty"`
 	Progression int          `json:"progression"`
+}
+
+// Etag returns the Etag for the resource
+func (task *TaskResource) Etag() string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprint(task))))
 }
 
 // TasksByCreatedAt is a type to sort a slice of TaskResource by creation date.

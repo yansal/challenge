@@ -79,6 +79,9 @@ func TestGetTasksID(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected status code %v; got %v", http.StatusOK, resp.StatusCode)
 	}
+	if resp.Header.Get("Etag") == "" {
+		t.Error("unexpected empty Etag header")
+	}
 
 	var task TaskResource
 	json.NewDecoder(resp.Body).Decode(&task)
@@ -388,11 +391,37 @@ func TestPatchTasksBadID(t *testing.T) {
 	}
 }
 
+func TestPatchTasksNoIfMatch(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", nil)
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusConflict {
+		t.Errorf("expected status code %v; got %v", http.StatusConflict, resp.StatusCode)
+	}
+}
+
+func TestPatchTasksBadIfMatch(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", nil)
+	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
+	req.Header.Add("If-Match", "123456")
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusPreconditionFailed {
+		t.Errorf("expected status code %v; got %v", http.StatusPreconditionFailed, resp.StatusCode)
+	}
+}
+
 func TestPatchTasksBadContentType(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/1")
+	defer resp.Body.Close()
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", nil)
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json")
-	resp, _ := http.DefaultClient.Do(req)
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusUnsupportedMediaType {
@@ -405,11 +434,14 @@ func TestPatchTasksBadContentType(t *testing.T) {
 }
 
 func TestPatchTasksNoOp(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/1")
+	defer resp.Body.Close()
 	patch, _ := json.Marshal(TaskPatches{{}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json-patch+json")
-	resp, _ := http.DefaultClient.Do(req)
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -418,11 +450,14 @@ func TestPatchTasksNoOp(t *testing.T) {
 }
 
 func TestPatchTasksBadOp(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/1")
+	defer resp.Body.Close()
 	patch, _ := json.Marshal(TaskPatches{{Op: "qwerty"}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json-patch+json")
-	resp, _ := http.DefaultClient.Do(req)
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -431,11 +466,14 @@ func TestPatchTasksBadOp(t *testing.T) {
 }
 
 func TestPatchTasksNoPath(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/1")
+	defer resp.Body.Close()
 	patch, _ := json.Marshal(TaskPatches{{Op: "replace"}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json-patch+json")
-	resp, _ := http.DefaultClient.Do(req)
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -444,11 +482,14 @@ func TestPatchTasksNoPath(t *testing.T) {
 }
 
 func TestPatchTasksBadPath(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/1")
+	defer resp.Body.Close()
 	patch, _ := json.Marshal(TaskPatches{{Op: "replace", Path: "name"}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json-patch+json")
-	resp, _ := http.DefaultClient.Do(req)
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -457,11 +498,14 @@ func TestPatchTasksBadPath(t *testing.T) {
 }
 
 func TestPatchTasksNoValue(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/1")
+	defer resp.Body.Close()
 	patch, _ := json.Marshal(TaskPatches{{Op: "replace", Path: "/name"}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json-patch+json")
-	resp, _ := http.DefaultClient.Do(req)
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -470,12 +514,15 @@ func TestPatchTasksNoValue(t *testing.T) {
 }
 
 func TestPatchTasksUpdateName(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/1")
+	defer resp.Body.Close()
 	name := "Patched name"
 	patch, _ := json.Marshal(TaskPatches{{Op: "replace", Path: "/name", Value: name}})
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/1", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json-patch+json")
-	resp, _ := http.DefaultClient.Do(req)
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
@@ -510,6 +557,8 @@ func TestPatchTasksUpdateName(t *testing.T) {
 }
 
 func TestPatchTasksUpdateDescriptionAndProgression(t *testing.T) {
+	resp, _ := http.Get(ts.URL + "/tasks/2")
+	defer resp.Body.Close()
 	description := "This is the patched description"
 	progression := 1
 	patch, _ := json.Marshal(TaskPatches{
@@ -519,7 +568,8 @@ func TestPatchTasksUpdateDescriptionAndProgression(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/tasks/2", bytes.NewReader(patch))
 	req.Header.Add("Authorization", "Token 077000ac559e1ba0fe4f303b614f30da6306341f")
 	req.Header.Add("Content-Type", "application/json-patch+json")
-	resp, _ := http.DefaultClient.Do(req)
+	req.Header.Add("If-Match", resp.Header.Get("Etag"))
+	resp, _ = http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {

@@ -55,6 +55,7 @@ func getTasksIDHandler(c *gin.Context) {
 		return
 	}
 
+	c.Header("Etag", task.Etag())
 	c.JSON(http.StatusOK, task)
 }
 
@@ -116,6 +117,16 @@ func patchTasksIDHandler(c *gin.Context) {
 	}
 	if task.User.ID != user.(User).ID {
 		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	ifMatch := c.Request.Header.Get("If-Match")
+	if ifMatch == "" {
+		c.AbortWithStatus(http.StatusConflict)
+		return
+	}
+	if ifMatch != task.Etag() {
+		c.AbortWithStatus(http.StatusPreconditionFailed)
 		return
 	}
 
