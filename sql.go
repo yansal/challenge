@@ -65,7 +65,9 @@ var (
 	selectCommentsWhereTaskID,
 	selectCommentsWhereUserID,
 	selectUsersWhereToken,
-	updateTasksName *sqlx.Stmt
+	updateTasksName,
+	updateTasksDescription,
+	updateTasksProgression *sqlx.Stmt
 )
 
 func prepare() {
@@ -129,6 +131,16 @@ func prepare() {
 	}
 
 	updateTasksName, err = db.Preparex(`UPDATE tasks SET name = $1 WHERE id = $2;`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	updateTasksDescription, err = db.Preparex(`UPDATE tasks SET description = $1 WHERE id = $2;`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	updateTasksProgression, err = db.Preparex(`UPDATE tasks SET progression = $1 WHERE id = $2;`)
 	if err != nil {
 		log.Fatal(err)
 	}

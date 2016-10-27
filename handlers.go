@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"gopkg.in/asaskevich/govalidator.v4"
 	"gopkg.in/gin-gonic/gin.v1"
 )
 
@@ -80,11 +81,12 @@ func postTasksHandler(c *gin.Context) {
 	c.Data(http.StatusCreated, "", nil)
 }
 
-// Patches is a patch document according to https://tools.ietf.org/html/rfc6902
-type Patches []struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value"`
+// TaskPatches is a patch document according to https://tools.ietf.org/html/rfc6902
+// It only allows to replace the "name", "description" and "progression" fields
+type TaskPatches []struct {
+	Op    string      `json:"op" valid:"required,matches(replace)"`
+	Path  string      `json:"path" valid:"required,matches(^/name$|^/description$|^/progression$)"`
+	Value interface{} `json:"value" valid:"-"`
 }
 
 func patchTasksIDHandler(c *gin.Context) {
@@ -117,14 +119,23 @@ func patchTasksIDHandler(c *gin.Context) {
 		return
 	}
 
-	// TODO: Validate patch document
-	var patches Patches
+	var patches TaskPatches
 	if err = c.BindJSON(&patches); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
+	for _, patch := range patches {
+		_, err := govalidator.ValidateStruct(patch)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, err)
+			return
+		}
+		if patch.Value == nil {
+			c.JSON(http.StatusBadRequest, fmt.Errorf(`"value" can't be null`))
+			return
+		}
+	}
 
-	// TODO: Apply patch document
 	tx, err := db.Beginx()
 	if err != nil {
 		log.Printf("couldn't begin: %v", err)
@@ -133,25 +144,25 @@ func patchTasksIDHandler(c *gin.Context) {
 	}
 	defer tx.Rollback()
 	for _, patch := range patches {
-		if patch.Op != "replace" {
-			c.AbortWithError(http.StatusBadRequest, fmt.Errorf(`op must be "replace"; got %v`, patch.Op))
-			return
-		}
-		if patch.Path != "/name" {
-			c.AbortWithError(http.StatusBadRequest, fmt.Errorf(`path must be "/name"; got %v`, patch.Op))
-			return
-		}
-		switch t := patch.Value.(type) {
-		case string:
-		default:
-			c.AbortWithError(http.StatusBadRequest, fmt.Errorf(`value must be a string; got %T`, t))
-			return
-		}
-
-		if _, err := tx.Stmtx(updateTasksName).Exec(patch.Value, taskID); err != nil {
-			log.Printf("couldn't update tasks: %v", err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
+		switch patch.Path {
+		case "/name":
+			if _, err := tx.Stmtx(updateTasksName).Exec(patch.Value, taskID); err != nil {
+				log.Printf("couldn't update tasks: %v", err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+		case "/description":
+			if _, err := tx.Stmtx(updateTasksDescription).Exec(patch.Value, taskID); err != nil {
+				log.Printf("couldn't update tasks: %v", err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+		case "/progression":
+			if _, err := tx.Stmtx(updateTasksProgression).Exec(patch.Value, taskID); err != nil {
+				log.Printf("couldn't update tasks: %v", err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
 		}
 	}
 	if err := tx.Commit(); err != nil {
