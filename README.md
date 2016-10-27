@@ -82,7 +82,7 @@ Via: 1.1 vegur
 
 ### Get one task
 
-This request returns an `Etag` header that is required for the PATCH /tasks/:id endpoint.
+This request returns a `Etag` header that is required for the PATCH /tasks/:id endpoint.
 ```
 $ http https://yansal-task-manager.herokuapp.com/tasks/1
 HTTP/1.1 200 OK
