@@ -80,6 +80,7 @@ func postTasksHandler(c *gin.Context) {
 	c.Data(http.StatusCreated, "", nil)
 }
 
+// Patches is a patch document according to https://tools.ietf.org/html/rfc6902
 type Patches []struct {
 	Op    string      `json:"op"`
 	Path  string      `json:"path"`
@@ -118,7 +119,7 @@ func patchTasksIDHandler(c *gin.Context) {
 
 	// TODO: Validate patch document
 	var patches Patches
-	if err := c.BindJSON(&patches); err != nil {
+	if err = c.BindJSON(&patches); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}

@@ -2,15 +2,19 @@ package main
 
 import "time"
 
+// Resource is a base resource with fields common to all resources
 type Resource struct {
 	ID int `json:"id"`
 }
 
+// UserResource is a resource that represents a user. It is always embeded in
+// a TaskResource or in a CommentResource
 type UserResource struct {
 	Resource
 	Username string `json:"username"`
 }
 
+// TaskResource is a resource that represents a task. It embeds a UserResource
 type TaskResource struct {
 	Resource
 	CreatedAt   time.Time    `db:"created_at" json:"created_at"`
@@ -21,12 +25,16 @@ type TaskResource struct {
 	Progression int          `json:"progression"`
 }
 
+// TasksByCreatedAt is a type to sort a slice of TaskResource by creation date.
+// It is only used in tests
 type TasksByCreatedAt []TaskResource
 
 func (t TasksByCreatedAt) Len() int           { return len(t) }
 func (t TasksByCreatedAt) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
 func (t TasksByCreatedAt) Less(i, j int) bool { return t[i].CreatedAt.After(t[j].CreatedAt) }
 
+// CommentResource is a resource that represents a user. It embeds a
+// UserResource
 type CommentResource struct {
 	Resource
 	CreatedAt time.Time    `db:"created_at" json:"created_at"`
@@ -35,6 +43,8 @@ type CommentResource struct {
 	Content   string       `json:"content"`
 }
 
+// CommentsByCreatedAt is a type to sort a slice of CommentResource by creation
+// date. It is only used in tests
 type CommentsByCreatedAt []CommentResource
 
 func (c CommentsByCreatedAt) Len() int           { return len(c) }
