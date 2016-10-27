@@ -26,12 +26,12 @@ func init() {
 
 func getTasksHandler(c *gin.Context) {
 	var tasks []TaskResource
-	err := db.Select(&tasks, `SELECT tasks.id, tasks.created_at, tasks.updated_at, tasks.name, tasks.description, tasks.progression, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id ORDER BY created_at DESC;`)
-	if err != nil {
+	if err := selectTasks.Select(&tasks); err != nil {
 		log.Printf("couldn't select from tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
 	c.JSON(http.StatusOK, tasks)
 }
 
@@ -41,8 +41,9 @@ func getTasksIDHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
+
 	var task TaskResource
-	err = db.Get(&task, `SELECT tasks.id, tasks.created_at, tasks.updated_at, tasks.name, tasks.description, tasks.progression, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id WHERE tasks.id = $1;`, id)
+	err = selectTaskWhereID.Get(&task, id)
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, nil)
 		return
@@ -52,6 +53,7 @@ func getTasksIDHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
 	c.JSON(http.StatusOK, task)
 }
 
@@ -62,17 +64,19 @@ func postTasksHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	var task = Task{UserID: user.(User).ID}
 
+	var task = Task{UserID: user.(User).ID}
 	if err := c.BindJSON(&task); err != nil {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	if _, err := db.Exec(insertTask, task.Name, task.UserID, task.Description, task.Progression); err != nil {
+
+	if _, err := insertTask.Exec(task.Name, task.UserID, task.Description, task.Progression); err != nil {
 		log.Printf("couldn't insert to tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
 	c.Data(http.StatusCreated, "", nil)
 }
 
@@ -95,8 +99,9 @@ func patchTasksIDHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
+
 	var task TaskResource
-	err = db.Get(&task, `SELECT tasks.id, tasks.created_at, tasks.updated_at, tasks.name, tasks.description, tasks.progression, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id WHERE tasks.id = $1;`, taskID)
+	err = selectTaskWhereID.Get(&task, taskID)
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, nil)
 		return
@@ -119,7 +124,7 @@ func patchTasksIDHandler(c *gin.Context) {
 	}
 
 	// TODO: Apply patch document
-	tx, err := db.Begin()
+	tx, err := db.Beginx()
 	if err != nil {
 		log.Printf("couldn't begin: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -141,7 +146,8 @@ func patchTasksIDHandler(c *gin.Context) {
 			c.AbortWithError(http.StatusBadRequest, fmt.Errorf(`value must be a string; got %T`, t))
 			return
 		}
-		if _, err := tx.Exec(`UPDATE tasks SET name = $1 WHERE id = $2;`, patch.Value, taskID); err != nil {
+
+		if _, err := tx.Stmtx(updateTasksName).Exec(patch.Value, taskID); err != nil {
 			log.Printf("couldn't update tasks: %v", err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
@@ -152,6 +158,7 @@ func patchTasksIDHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
 	c.Data(http.StatusNoContent, "", nil)
 }
 
@@ -161,13 +168,14 @@ func getUsersIDTasksHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
+
 	var tasks []TaskResource
-	err = db.Select(&tasks, `SELECT tasks.id, tasks.created_at, tasks.updated_at, tasks.name, tasks.description, tasks.progression, users.id AS "user.id", users.username AS "user.username" FROM tasks JOIN users ON tasks.user_id = users.id WHERE user_id=$1 ORDER BY created_at DESC;`, id)
-	if err != nil {
+	if err = selectTasksWhereUserID.Select(&tasks, id); err != nil {
 		log.Printf("couldn't select from tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
 	c.JSON(http.StatusOK, tasks)
 }
 
@@ -184,8 +192,9 @@ func postTasksIDCommentsHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	var i int
-	err = db.Get(&i, "SELECT 1 FROM tasks WHERE id=$1", taskID)
+
+	var task TaskResource
+	err = selectTaskWhereID.Get(&task, taskID)
 	if err == sql.ErrNoRows {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
@@ -201,11 +210,13 @@ func postTasksIDCommentsHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	if _, err := db.Exec(insertComment, comment.UserID, comment.TaskID, comment.Content); err != nil {
+
+	if _, err := insertComment.Exec(comment.UserID, comment.TaskID, comment.Content); err != nil {
 		log.Printf("couldn't insert to comments: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
 	c.Data(http.StatusCreated, "", nil)
 }
 
@@ -215,13 +226,14 @@ func getTasksIDCommentsHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
+
 	var comments []CommentResource
-	err = db.Select(&comments, `SELECT comments.id, comments.created_at, comments.content, comments.task_id, users.id AS "user.id", users.username AS "user.username" FROM comments JOIN users ON comments.user_id = users.id WHERE task_id = $1 ORDER BY created_at DESC;`, taskID)
-	if err != nil {
+	if err = selectCommentsWhereTaskID.Select(&comments, taskID); err != nil {
 		log.Printf("couldn't select from comments: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
 	c.JSON(http.StatusOK, comments)
 }
 
@@ -231,13 +243,14 @@ func getUsersIDCommentsHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
+
 	var comments []CommentResource
-	err = db.Select(&comments, `SELECT comments.id, comments.created_at, comments.content, comments.task_id, users.id AS "user.id", users.username AS "user.username" FROM comments JOIN users ON comments.user_id = users.id WHERE user_id = $1 ORDER BY created_at DESC;`, userID)
-	if err != nil {
+	if err := selectCommentsWhereUserID.Select(&comments, userID); err != nil {
 		log.Printf("couldn't select from tasks: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
 	c.JSON(http.StatusOK, comments)
 }
 
@@ -249,8 +262,9 @@ func authMiddleware(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+
 	var user User
-	err := db.Get(&user, `SELECT * FROM users WHERE token=$1`, fields[1])
+	err := selectUsersWhereToken.Get(&user, fields[1])
 	if err == sql.ErrNoRows {
 		c.Header("WWW-Authenticate", "Token")
 		c.AbortWithStatus(http.StatusUnauthorized)
@@ -261,5 +275,6 @@ func authMiddleware(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
 	c.Set(gin.AuthUserKey, user)
 }

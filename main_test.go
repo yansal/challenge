@@ -26,11 +26,13 @@ var ts *httptest.Server
 func setup() {
 	ts = httptest.NewServer(router)
 	db = sqlx.MustConnect("postgres", "dbname=taskmanagertest sslmode=disable")
+	create()
+	prepare()
 	seed()
 }
 
 func teardown() {
-	db.MustExec(drop)
+	drop()
 }
 
 func TestGetTasks(t *testing.T) {
@@ -46,6 +48,9 @@ func TestGetTasks(t *testing.T) {
 
 	if len(tasks) != 3 {
 		t.Errorf("expected 3 tasks; got %d (%+v)", len(tasks), tasks)
+	}
+	if len(tasks) == 0 {
+		t.FailNow()
 	}
 	if tasks[0].ID != 3 {
 		t.Errorf("expected first task to have id 3; got %d", tasks[0].ID)

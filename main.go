@@ -27,6 +27,10 @@ func main() {
 	db = sqlx.MustConnect("postgres", databaseURL)
 
 	if *seedFlag {
+		create()
+	}
+	prepare()
+	if *seedFlag {
 		seed()
 	}
 
