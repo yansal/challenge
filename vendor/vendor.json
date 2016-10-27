@@ -57,6 +57,12 @@
 			"revisionTime": "2016-10-24T22:38:16Z"
 		},
 		{
+			"checksumSHA1": "99y5HMpSnbs0LdDxK9Hviim2yGU=",
+			"path": "gopkg.in/asaskevich/govalidator.v4",
+			"revision": "7664702784775e51966f0885f5cd27435916517b",
+			"revisionTime": "2016-05-18T19:07:39Z"
+		},
+		{
 			"checksumSHA1": "Y9uJ9ucMW48ht6FidAa0QaLub10=",
 			"path": "gopkg.in/gin-gonic/gin.v1",
 			"revision": "2dae550eb5392006a4582ce9c90016a9b5a74e8b",
