@@ -109,6 +109,13 @@ Via: 1.1 vegur
 ### Post a task
 A `Authorization` header is required for every POST and PATCH endpoints.
 
+The database is seeded with the 2 following users:
+
+| Username | Token                                     |
+| -------- | ----------------------------------------- |
+| Alice    | 077000ac559e1ba0fe4f303b614f30da6306341f  |
+| Bob      | ef2e253a2b4564ae949b053025c845552f2e99cc  |
+
 To post a task, the `name` field is required and the `description` and `progression` fields are optional.
 ```
 $ http -v https://yansal-task-manager.herokuapp.com/tasks/ name="Posted Task" Authorization:"Token 077000ac559e1ba0fe4f303b614f30da6306341f"
